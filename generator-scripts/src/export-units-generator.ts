@@ -1,5 +1,5 @@
-import { Project, StructureKind } from "ts-morph";
-import { UnitTypeDefinition } from "./models/units-definition";
+import { Project, StructureKind } from 'ts-morph';
+import { UnitTypeDefinition } from './models/units-definition';
 
 /**
  * Generate index file to export all generated unit classes 
@@ -20,9 +20,23 @@ export function generateUnitsModuleExport(project: Project, unitsDestinationDire
     for (const unitDefinition of rawUnitsDefinitions) {
         sourceFile.addExportDeclaration({
             kind: StructureKind.ExportDeclaration,
-            moduleSpecifier: `./${unitDefinition.Name.toLocaleLowerCase()}.g`
-        })
+            moduleSpecifier: `./gen-units/${unitDefinition.Name.toLocaleLowerCase()}.g`
+        });
     }
+
+    sourceFile.addExportDeclaration({
+        kind: StructureKind.ExportDeclaration,
+        moduleSpecifier: `./base-unit`,
+        namedExports: [
+            'ArithmeticOperation',
+            'CompareOperation',
+            'OperatorOverrides',
+            'setOperatorOverride',
+            'unsetOperatorOverride',
+            'unsetAllOperatorOverrides',
+            'areAnyOperatorsOverridden'
+        ]
+    });
 
     // Generate the export modules file.
     sourceFile.saveSync();

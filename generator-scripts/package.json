@@ -4,16 +4,21 @@
   "description": "Based on UnisNet Project",
   "main": "index.js",
   "scripts": {
+    "antlr:unix": "antlr4ts -visitor ./src/math-interop/antlr/grammatical/arithmetic.g4",
+    "antlr:win": "antlr4ts -visitor .\\src\\math-interop\\antlr\\grammatical\\arithmetic.g4",
+    "generate:unix": "npm run antlr:unix && npm run build && node dist/index.js",
+    "generate:win": "npm run antlr:win && npm run build && node dist\\index.js",
+    "generate": "node -e \"process.platform === 'win32' ? process.exit(0) : process.exit(1)\" && npm run generate:win || npm run generate:unix",
     "build": "tsc",
-    "generate:win": "npm run build && node dist\\index.js",
-    "generate": "npm run build && node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: the tests are specified on the root project \" && exit 1"
   },
   "author": "Haim Kastner",
   "license": "MIT",
   "devDependencies": {
     "@types/fs-extra": "^8.1.1",
     "@types/node": "^12.12.62",
+    "antlr4ts": "^0.5.0-alpha.4",
+    "antlr4ts-cli": "^0.5.0-alpha.4",
     "fs-extra": "^8.1.0",
     "ts-morph": "^6.0.3",
     "typescript": "^3.9.7"

@@ -9,9 +9,9 @@ jobs:
       matrix:
         node-version: [16.x]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
@@ -28,13 +28,40 @@ jobs:
           yarn generate
           yarn test
 
+  cover:
+    needs: build
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [">=14.6"]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Run Coverage
+      run: |
+        yarn install
+        yarn run cover
+
+    - name: Publish to Coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
   release:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
@@ -74,7 +101,7 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

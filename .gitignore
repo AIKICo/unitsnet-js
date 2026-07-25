@@ -102,3 +102,8 @@ dist
 
 # TernJS port file
 .tern-port
+
+generator-scripts/src/math-interop/antlr/grammatical/*
+!generator-scripts/src/math-interop/antlr/grammatical/arithmetic.g4
+
+.idea/

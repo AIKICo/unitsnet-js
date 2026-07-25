@@ -2,7 +2,7 @@ import { UnitTypeDefinition, UnitDefinition, Prefix } from "./models/units-defin
 import { generateUnitClass } from './unit-generator';
 import { Project } from "ts-morph";
 import { UnitProperties } from "./models/units-properties";
-import { pascalToCamelCase } from './utiles';
+import { pascalToCamelCase } from './utils';
 /**
  * The factor between unit and his prefix.
  */
@@ -22,6 +22,12 @@ const prefixesFactor: { [key in Prefix]: number } = {
     Nano: 1e-9,
     Pico: 1e-12,
     Femto: 1e-15,
+    Kibi: 1024,
+    Mebi: Math.pow(1024, 2),
+    Gibi: Math.pow(1024, 3),
+    Tebi: Math.pow(1024, 4),
+    Pebi: Math.pow(1024, 5),
+    Exbi: Math.pow(1024, 6),
 };
 
 const prefixesAbbreviation: { [key in Prefix]: string } = {
@@ -39,7 +45,13 @@ const prefixesAbbreviation: { [key in Prefix]: string } = {
     Micro: 'μ',
     Nano: 'n',
     Pico: 'p',
-    Femto: 'f'
+    Femto: 'f',
+    Kibi: 'KiB',
+    Mebi: 'MiB',
+    Gibi: 'GiB',
+    Tebi: 'TiB',
+    Pebi: 'PiB',
+    Exbi: 'EiB',
 };
 
 /**

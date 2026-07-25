@@ -7,11 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [22.x]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
@@ -24,19 +24,52 @@ jobs:
           yarn install --frozen-lockfile
 
       - name: Build & Test 🔧
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           yarn generate
           yarn test
+
+  cover:
+    needs: build
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [">=14.6"]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Run Coverage
+      run: |
+        yarn install
+        yarn run cover
+
+    - name: Publish to Coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '16.x'
+          # Node 24 ships npm >= 11.5.1, required for OIDC trusted publishing
+          node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Prepare dependencies
@@ -47,13 +80,15 @@ jobs:
           cd ..
           yarn install --frozen-lockfile
 
-      - name: Bomb Version
+      - name: Increase Version
         id: update_version
         run: |
-          git pull
-          version=$(npm --no-git-tag-version --tag-version-prefix= version patch)
-          echo $version
-          echo "VERSION=$version" >> $GITHUB_OUTPUT
+          VERSION=$(node -p "require('./package.json').version")
+          DEFINITION_VERSION=$(node -p "require('./package.json').definitionVersion")
+          CURRENT_DEFINITION=$(node ./scripts/definition-version.js)
+          NEXT_VERSION=$(node ./scripts/next-package-version.js $VERSION $DEFINITION_VERSION $CURRENT_DEFINITION)
+          jq --arg next_version "$NEXT_VERSION" --arg current_definition "$CURRENT_DEFINITION" '.version = $next_version | .definitionVersion = $current_definition' package.json > tmp.json && mv tmp.json package.json
+          echo "VERSION=$NEXT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Get version info
         id: version_info
@@ -68,13 +103,11 @@ jobs:
           commit_message: Update to version ${{ steps.update_version.outputs.VERSION }} [skip-ci]
 
       - name: Publish package on NPM 📦
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -96,6 +129,12 @@ jobs:
         run: |
           # Trigger re-generate Python units once a new release created 
           curl --fail --location --request POST 'https://api.github.com/repos/haimkastner/unitsnet-py/actions/workflows/build.yml/dispatches' \
+          --header 'Accept: application/vnd.github.everest-preview+json' \
+          --header 'Content-Type: application/json' \
+          --header "Authorization: token $UNITSNET_PYTHON_WORKFLOW_TOKEN" \
+          --data-raw '{"ref": "main" }'
+          # Trigger re-generate Golang units once a new release created 
+          curl --fail --location --request POST 'https://api.github.com/repos/haimkastner/unitsnet-go/actions/workflows/build.yml/dispatches' \
           --header 'Accept: application/vnd.github.everest-preview+json' \
           --header 'Content-Type: application/json' \
           --header "Authorization: token $UNITSNET_PYTHON_WORKFLOW_TOKEN" \
